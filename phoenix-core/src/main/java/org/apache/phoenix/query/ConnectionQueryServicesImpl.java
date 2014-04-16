@@ -258,6 +258,24 @@ public class ConnectionQueryServicesImpl extends DelegateQueryServices implement
     
     @Override
     public HTableDescriptor getTableDescriptor(byte[] tableName) throws SQLException {
+        HBaseAdmin admin = getAdmin();
+
+        try {
+            if (!admin.tableExists(tableName)) {
+                byte[][] schemaAndTableName = new byte[2][];
+                SchemaUtil.getVarChars(tableName, schemaAndTableName);
+                throw new TableNotFoundException(Bytes.toString(schemaAndTableName[0]), Bytes.toString(schemaAndTableName[1]));
+            }
+        } catch (IOException e) {
+            throw new PhoenixIOException(e);
+        } finally {
+            try {
+                admin.close();
+            } catch (IOException e) {
+                throw new PhoenixIOException(e);
+            }
+        }
+
         HTableInterface htable = getTable(tableName);
         try {
             return htable.getTableDescriptor();
